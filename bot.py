@@ -1,3 +1,16 @@
+os.environ['DISCORD_TOKEN'] = ""
+os.environ['REPLICATE_API_TOKEN'] = ""
+
+!pip install discord
+!pip install python-dotenv
+!pip install replicate
+
+!pip install nest_asyncio
+import nest_asyncio
+nest_asyncio.apply()
+
+# Basic Command
+
 import discord
 from discord.ext import commands
 import os
@@ -118,4 +131,38 @@ async def on_message(message):
     else:
         await client.process_commands(message)
 
-client.run(" ")
+
+
+
+# Stable Diffusion
+
+
+from discord import Intents
+from discord.ext import commands
+from dotenv import load_dotenv
+import os
+import replicate
+
+load_dotenv()
+
+@client.command(aliases=["sd"])
+async def stable_diffusion(ctx, *, prompt):
+    """Generate an image from a text prompt using the stable-diffusion model"""
+    msg = await ctx.send(f"“{prompt}”\n> Generating...")
+
+    model = replicate.models.get("stability-ai/stable-diffusion")
+    version = model.versions.get("db21e45d3f7023abc2a46ee38a23973f6dce16bb082a930b0c49861f96d1e5bf")
+    image = version.predict(prompt=prompt)[0]
+    scheduler = "KLMS"
+    num_inference_steps = 30
+    num_outputs = 2
+    await msg.edit(content=f"“{prompt}”\n{image}")
+
+@client.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("You must provide a prompt!")
+    else:
+        await ctx.send(f"An error occurred: {error}")
+
+client.run(os.environ['DISCORD_TOKEN'])
